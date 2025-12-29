@@ -1,0 +1,45 @@
+{
+  "name": "obf-node",
+  "version": "1.0.0",
+  "description": "Node.js implementation of the Open Board Format (OBF) validator and converter",
+  "main": "src/index.js",
+  "bin": {
+    "obf-node": "bin/obf-node"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "obf",
+    "aac",
+    "open-board-format",
+    "validator",
+    "converter"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "fs-extra": "^11.3.2",
+    "jszip": "^3.10.1",
+    "mime-types": "^3.0.2",
+    "pdfkit": "^0.17.2",
+    "plist": "^3.1.0",
+    "sharp": "^0.34.5",
+    "tinycolor2": "^1.6.0",
+    "xml2js": "^0.6.2",
+    "yargs": "^18.0.0"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
+  }
+}
