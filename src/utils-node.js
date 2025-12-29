@@ -6,7 +6,6 @@ const plist = require('plist');
 const xml2js = require('xml2js');
 const tinycolor = require('tinycolor2');
 const mime = require('mime-types');
-const { URL } = require('url');
 
 const Utils = {
   async get_url(url) {
@@ -46,7 +45,7 @@ const Utils = {
     let content;
     try {
       content = await fs.readFile(filePath);
-    } catch (e) {
+    } catch (_e) {
       return 'unknown';
     }
 
@@ -60,17 +59,21 @@ const Utils = {
         return 'json_not_obf';
       }
       return 'json_not_object';
-    } catch (e) {
+    } catch (_e) {
       // Not JSON
     }
 
     // Try Plist (sfy)
     try {
       const parsedPlist = plist.parse(content.toString());
-      if (parsedPlist && parsedPlist.$objects && parsedPlist.$objects.some(o => o.$classname === 'SYWord')) {
+      if (
+        parsedPlist &&
+        parsedPlist.$objects &&
+        parsedPlist.$objects.some((o) => o.$classname === 'SYWord')
+      ) {
         return 'sfy';
       }
-    } catch (e) {
+    } catch (_e) {
       // Not Plist
     }
 
@@ -81,7 +84,7 @@ const Utils = {
       if (xml && xml.sensorygrid) {
         return 'sgrid';
       }
-    } catch (e) {
+    } catch (_e) {
       // Not XML
     }
 
@@ -95,9 +98,9 @@ const Utils = {
           return 'obz';
         }
       }
-      
+
       // Check for picto4me (ignoring as per instructions, but logic was here)
-    } catch (e) {
+    } catch (_e) {
       // Not Zip
     }
 
@@ -125,13 +128,13 @@ const Utils = {
       const rootPath = manifest.root;
       const rootStr = await zip.file(rootPath).async('string');
       const root = JSON.parse(rootStr);
-      
+
       // For OBZ, we might want to return the whole structure or just the root board
       // The Ruby version seems to handle this by creating an External object
       // For now, let's return the root board and attach other boards if needed
       if (manifest.paths && manifest.paths.boards) {
         root.boards = [];
-        for (const [id, path] of Object.entries(manifest.paths.boards)) {
+        for (const [_id, path] of Object.entries(manifest.paths.boards)) {
           if (path === rootPath) continue;
           const boardStr = await zip.file(path).async('string');
           const board = JSON.parse(boardStr);
@@ -144,17 +147,17 @@ const Utils = {
     }
   },
 
-  parse_obf(obj, opts = {}) {
+  parse_obf(obj, _opts = {}) {
     let json = obj;
     if (typeof obj === 'string') {
       json = JSON.parse(obj);
     }
 
     // Normalize images/sounds/buttons to arrays if they are hashes
-    ['images', 'sounds', 'buttons'].forEach(key => {
+    ['images', 'sounds', 'buttons'].forEach((key) => {
       if (json[key] && !Array.isArray(json[key])) {
         const arr = [];
-        Object.keys(json[key]).forEach(id => {
+        Object.keys(json[key]).forEach((id) => {
           const item = json[key][id];
           if (item) {
             item.id = item.id || id;
@@ -166,7 +169,7 @@ const Utils = {
     });
 
     return json;
-  }
+  },
 };
 
 module.exports = Utils;
