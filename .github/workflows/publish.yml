@@ -29,7 +29,8 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/}
           VERSION=${VERSION#v}
           echo "Setting version to $VERSION"
-          npm version $VERSION --no-git-tag-version
+          # Use --allow-same-version to prevent error if package.json already has this version
+          npm version $VERSION --no-git-tag-version --allow-same-version
       
       - name: Publish to NPM
         run: npm publish --access public --provenance
