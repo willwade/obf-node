@@ -9,6 +9,9 @@ const fs = require('fs-extra');
 const External = require('./external-node');
 const Sfy = require('./converters/sfy');
 const Sgrid = require('./converters/sgrid');
+const TouchChat = require('./converters/touchchat');
+const Snap = require('./converters/snap');
+const Grid3 = require('./converters/grid3');
 
 yargs(hideBin(process.argv))
   .command(
@@ -73,6 +76,12 @@ yargs(hideBin(process.argv))
           obj = await Sfy.to_external(inputFile);
         } else if (type === 'sgrid') {
           obj = await Sgrid.to_external(inputFile);
+        } else if (type === 'touchchat') {
+          obj = await TouchChat.to_external(inputFile);
+        } else if (type === 'snap') {
+          obj = await Snap.to_external(inputFile);
+        } else if (type === 'grid3') {
+          obj = await Grid3.to_external(inputFile);
         } else {
           obj = await Utils.load_obf(inputFile);
         }
@@ -98,9 +107,21 @@ yargs(hideBin(process.argv))
           }
         });
       } else if (outExt === '.obf') {
-        await External.to_obf(obj, destFile, null, { images: true, sounds: true });
+        let toConvert = obj;
+        if (obj.boards && obj.boards.length > 0) {
+          toConvert = obj.boards[0];
+          toConvert.images = obj.images || [];
+          toConvert.sounds = obj.sounds || [];
+        }
+        await External.to_obf(toConvert, destFile, null, { images: true, sounds: true });
       } else if (outExt === '.obz') {
         await External.to_obz(obj, destFile);
+      } else if (outExt === '.gridset') {
+        await Grid3.from_external(obj, destFile);
+      } else if (outExt === '.spb') {
+        await Snap.from_external(obj, destFile);
+      } else if (outExt === '.ce') {
+        await TouchChat.from_external(obj, destFile);
       } else {
         console.error('Unsupported output format');
       }

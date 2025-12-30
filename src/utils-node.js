@@ -40,6 +40,9 @@ const Utils = {
     const name = path.basename(filePath);
     if (name.match(/\.obf$/)) return 'obf';
     if (name.match(/\.obz$/)) return 'obz';
+    if (name.match(/\.ce$/)) return 'touchchat';
+    if (name.match(/\.gridset$/)) return 'grid3';
+    if (name.match(/\.sp(s|b)$/)) return 'snap';
     if (name.match(/\.avz$/)) return 'avz';
 
     let content;

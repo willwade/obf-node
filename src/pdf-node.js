@@ -103,7 +103,10 @@ class PdfBuilder {
 
           // Label
           const label = button.label || button.vocalization || '';
-          doc.fillColor('#000000').fontSize(12);
+          const fontColor = button.style?.font_color
+            ? Utils.fix_color(button.style.font_color, 'hex')
+            : '#000000';
+          doc.fillColor(fontColor).fontSize(12);
 
           const labelY = opts.text_on_top ? y + 5 : y + buttonHeight - textHeight - 5;
           doc.text(label, x, labelY, { width: buttonWidth, align: 'center' });
@@ -115,8 +118,10 @@ class PdfBuilder {
               try {
                 let imageBuffer;
                 if (image.data) {
-                  // Data URI
-                  const base64Data = image.data.split(',')[1];
+                  // Data URI or raw Base64
+                  const base64Data = image.data.includes(',')
+                    ? image.data.split(',')[1]
+                    : image.data;
                   imageBuffer = Buffer.from(base64Data, 'base64');
                 } else if (image.url) {
                   // Remote URL

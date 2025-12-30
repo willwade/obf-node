@@ -34,7 +34,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "axios": "^1.13.2",
+    "better-sqlite3": "^12.5.0",
+    "fast-xml-parser": "^5.3.3",
     "fs-extra": "^11.3.2",
     "jszip": "^3.10.1",
     "mime-types": "^3.0.2",

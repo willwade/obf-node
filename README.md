@@ -16,9 +16,21 @@ npm install obf-node
 obf-node validate path/to/board.obf
 ```
 
+### Supported formats for conversion to OBF:
+
+- **.sfy** (Sensory Grid Player)
+- **.sgrid** (Sensory Grid)
+- **.ce** (TouchChat)
+- **.spb / .sps** (Snap)
+- **.gridset** (Grid3)
+- **.obz** (Open Board Zip)
+- **.obf** (Open Board Format)
+- **.avz** (Asterics Grid)
+- **.json** (Generic OBF JSON)
+
 ### Convert between formats
 
-You can convert from OBF, OBZ, SFY (Sensory Grid Player), or SGRID (Sensory Grid) to PDF, PNG, OBF, or OBZ.
+You can convert from OBF, OBZ, SFY, SGRID, TouchChat (.ce), Snap (.spb/.sps), or Grid3 (.gridset) to PDF, PNG, OBF, or OBZ.
 
 _Note: The SFY and SGRID converters are ported from the original Ruby codebase and serve as demonstration of how native/proprietary AAC formats can be converted to the Open Board Format._
 
