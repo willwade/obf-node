@@ -19,7 +19,9 @@ if (typeof process !== 'undefined' && process.versions && process.versions.node)
 }
 
 const Utils = {
-  async get_url(url: string | null | undefined): Promise<{ content_type: string; data: Buffer | ArrayBuffer; extension: string } | null> {
+  async get_url(
+    url: string | null | undefined
+  ): Promise<{ content_type: string; data: Buffer | ArrayBuffer; extension: string } | null> {
     if (!url) return null;
     let contentType = '';
     let data: Buffer | ArrayBuffer;
@@ -48,7 +50,9 @@ const Utils = {
       }
     }
 
-    const extension = (mime.extension(contentType) as string) ? `.${mime.extension(contentType)}` : '';
+    const extension = (mime.extension(contentType) as string)
+      ? `.${mime.extension(contentType)}`
+      : '';
     return {
       content_type: contentType,
       data: data,
@@ -106,7 +110,7 @@ const Utils = {
       // Not XML
     }
 
-    // Try Zip (obz)
+    // Try Zip (obz or picto4me)
     try {
       const zip = await JSZip.loadAsync(content);
       if (zip.file('manifest.json')) {
@@ -114,6 +118,15 @@ const Utils = {
         const json = JSON.parse(manifestContent);
         if (json.root && json.format && json.format.match(/^open-board-/)) {
           return 'obz';
+        }
+      }
+      // Check for Picto4me format (has .js file with locale and sheets)
+      const jsFiles = Object.keys(zip.files).filter((n) => n.endsWith('.js'));
+      if (jsFiles.length > 0) {
+        const jsContent = await zip.file(jsFiles[0])!.async('string');
+        const jsJson = JSON.parse(jsContent);
+        if (jsJson.locale && jsJson.sheets) {
+          return 'picto4me';
         }
       }
     } catch (_e) {
@@ -153,7 +166,9 @@ const Utils = {
 
       if (manifest.paths && manifest.paths.boards) {
         root.boards = [];
-        for (const [_id, boardPath] of Object.entries(manifest.paths.boards as Record<string, string>)) {
+        for (const [_id, boardPath] of Object.entries(
+          manifest.paths.boards as Record<string, string>
+        )) {
           if (boardPath === rootPath) continue;
           const boardStr = await zip.file(boardPath)!.async('string');
           const board = JSON.parse(boardStr);

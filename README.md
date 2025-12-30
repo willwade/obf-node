@@ -85,12 +85,11 @@ const board = await Utils.load_obf_content(uint8Array, file.name);
 
 ## Development
 
--   `npm run build`: Compile TypeScript to `dist`
--   `npm run dev`: Run the CLI directly from TS source using `ts-node`
--   `npm test`: Run tests
--   `npm run lint`: Lint the codebase
--   `npm run format`: Format the codebase with Prettier
-
+- `npm run build`: Compile TypeScript to `dist`
+- `npm run dev`: Run the CLI directly from TS source using `ts-node`
+- `npm test`: Run tests
+- `npm run lint`: Lint the codebase
+- `npm run format`: Format the codebase with Prettier
 
 ## Requirements for PNG Conversion
 

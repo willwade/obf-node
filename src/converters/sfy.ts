@@ -3,7 +3,9 @@ import fs from 'fs-extra';
 import { OBFPage, OBFImage, OBFButton } from '../types';
 
 const Sfy = {
-  async to_external(filePath: string): Promise<{ boards: OBFPage[]; images: OBFImage[]; sounds: any[] }> {
+  async to_external(
+    filePath: string
+  ): Promise<{ boards: OBFPage[]; images: OBFImage[]; sounds: any[] }> {
     const content = await fs.readFile(filePath, 'utf8');
     const data = plist.parse(content) as any;
 

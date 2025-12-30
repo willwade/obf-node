@@ -51,7 +51,9 @@ const Sgrid = {
       };
     }
 
-    const cellsArr = Array.isArray(gridData.cells.cell) ? gridData.cells.cell : [gridData.cells.cell];
+    const cellsArr = Array.isArray(gridData.cells.cell)
+      ? gridData.cells.cell
+      : [gridData.cells.cell];
     let imageIdCounter = 0;
 
     cellsArr.forEach((cell: any, idx: number) => {

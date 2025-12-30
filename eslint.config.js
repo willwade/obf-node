@@ -6,7 +6,7 @@ const globals = require('globals');
 
 module.exports = tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'eslint.config.js', 'jest.config.js'],
+    ignores: ['dist/**', 'node_modules/**', 'obf/**', 'eslint.config.js', 'jest.config.js'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

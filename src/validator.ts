@@ -103,7 +103,11 @@ export class Validator {
     return this.validate_content(content, path.basename(filePath), stats.size);
   }
 
-  static async validate_content(content: Buffer | Uint8Array, filename: string, filesize: number): Promise<ValidationResult> {
+  static async validate_content(
+    content: Buffer | Uint8Array,
+    filename: string,
+    filesize: number
+  ): Promise<ValidationResult> {
     const type = await Utils.identify_content(content, filename);
 
     if (type === 'obf') {
@@ -148,7 +152,12 @@ export class Validator {
     }
   }
 
-  static async validate_obf_content_static(content: string, filename: string, filesize: number, opts: { zipper?: JSZip } = {}): Promise<ValidationResult> {
+  static async validate_obf_content_static(
+    content: string,
+    filename: string,
+    filesize: number,
+    opts: { zipper?: JSZip } = {}
+  ): Promise<ValidationResult> {
     const v = new Validator();
     const results = await v.validate_obf_content(content, filename, opts);
 
@@ -162,7 +171,10 @@ export class Validator {
     };
   }
 
-  static async validate_obf_file(filePath: string, opts: { zipper?: JSZip } = {}): Promise<ValidationResult> {
+  static async validate_obf_file(
+    filePath: string,
+    opts: { zipper?: JSZip } = {}
+  ): Promise<ValidationResult> {
     if (!fs) throw new Error('File system access not available in this environment');
     const fn = path.basename(filePath);
     const content = await fs.readFile(filePath, 'utf8');
@@ -170,12 +182,17 @@ export class Validator {
     return this.validate_obf_content_static(content, fn, filesize, opts);
   }
 
-  static async validate_obz_content_static(content: Buffer | Uint8Array, filename: string, filesize: number): Promise<ValidationResult> {
+  static async validate_obz_content_static(
+    content: Buffer | Uint8Array,
+    filename: string,
+    filesize: number
+  ): Promise<ValidationResult> {
     const v = new Validator();
     const [results, sub_results] = await v.validate_obz_content_buffer(content, filename);
 
     const totalErrors = v.errors + sub_results.reduce((acc, r: any) => acc + (r.errors || 0), 0);
-    const totalWarnings = v.warnings + sub_results.reduce((acc, r: any) => acc + (r.warnings || 0), 0);
+    const totalWarnings =
+      v.warnings + sub_results.reduce((acc, r: any) => acc + (r.warnings || 0), 0);
 
     return {
       filename: filename,
@@ -195,7 +212,10 @@ export class Validator {
     return this.validate_obz_content_static(content, path.basename(filePath), filesize);
   }
 
-  async validate_obz_content_buffer(zipContent: Buffer | Uint8Array, filename: string): Promise<[ValidationCheck[], ValidationResult[]]> {
+  async validate_obz_content_buffer(
+    zipContent: Buffer | Uint8Array,
+    filename: string
+  ): Promise<[ValidationCheck[], ValidationResult[]]> {
     await this.add_check('filename', 'file name', async () => {
       if (!filename.match(/\.obz$/)) this.warn('filename should end with .obz');
     });
@@ -289,7 +309,9 @@ export class Validator {
 
         const foundPaths = ['manifest.json'];
         if (json.paths && json.paths.boards) {
-          for (const [id, boardPath] of Object.entries(json.paths.boards as Record<string, string>)) {
+          for (const [id, boardPath] of Object.entries(
+            json.paths.boards as Record<string, string>
+          )) {
             foundPaths.push(boardPath);
             await this.add_check(
               `manifest_boards[${id}]`,
@@ -314,19 +336,26 @@ export class Validator {
                 }
               }
             );
-            
+
             const bFile = (zip as any).file(boardPath);
             if (bFile) {
               const bStr = await bFile.async('string');
               const bData = await bFile.async('uint8array');
-              const sub = await Validator.validate_obf_content_static(bStr, boardPath, bData.length, { zipper: zip as any });
+              const sub = await Validator.validate_obf_content_static(
+                bStr,
+                boardPath,
+                bData.length,
+                { zipper: zip as any }
+              );
               sub_results.push(sub);
             }
           }
         }
 
         if (json.paths && json.paths.images) {
-          for (const [_id, imgPath] of Object.entries(json.paths.images as Record<string, string>)) {
+          for (const [_id, imgPath] of Object.entries(
+            json.paths.images as Record<string, string>
+          )) {
             foundPaths.push(imgPath);
             await this.add_check(
               `manifest_images[${_id}]`,
@@ -341,7 +370,9 @@ export class Validator {
         }
 
         if (json.paths && json.paths.sounds) {
-          for (const [_id, soundPath] of Object.entries(json.paths.sounds as Record<string, string>)) {
+          for (const [_id, soundPath] of Object.entries(
+            json.paths.sounds as Record<string, string>
+          )) {
             foundPaths.push(soundPath);
             await this.add_check(
               `manifest_sounds[${_id}]`,
@@ -371,7 +402,11 @@ export class Validator {
     return [this._checks, this._sub_checks];
   }
 
-  async validate_obf_content(content: string, filename: string, opts: { zipper?: JSZip } = {}): Promise<ValidationCheck[]> {
+  async validate_obf_content(
+    content: string,
+    filename: string,
+    opts: { zipper?: JSZip } = {}
+  ): Promise<ValidationCheck[]> {
     await this.add_check('filename', 'file name', async () => {
       if (!filename.match(/\.obf$/)) this.warn('filename should end with .obf');
     });
@@ -596,19 +631,26 @@ export class Validator {
             return;
           }
           if (!button.id) this.err('button.id is required');
-          if (!button.label && !button.vocalization)
-            this.err('button.label or button.vocalization is required');
+          if (!button.label) this.err('button.label is required');
+
+          ['top', 'left', 'width', 'height'].forEach((attr) => {
+            if (
+              button[attr] !== undefined &&
+              (typeof button[attr] !== 'number' || button[attr] < 0)
+            ) {
+              this.warn(`button.${attr} should be a positive number`);
+            }
+          });
 
           ['background_color', 'border_color'].forEach((color) => {
             if (button[color]) {
               if (
                 !button[color].match(
                   /^\s*rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[01]?\.?\d*)?\)\s*/
-                ) && 
-                !button[color].match(/^#([A-Fa-f0-9]{3}){1,2}$/)
+                )
               ) {
                 this.err(
-                  `button.${color} must be a valid rgb, rgba or hex value if defined ("${button[color]}" is invalid)`
+                  `button.${color} must be a valid rgb or rgba value if defined ("${button[color]}" is invalid)`
                 );
               }
             }
@@ -618,7 +660,7 @@ export class Validator {
             this.err('button.hidden must be a boolean if defined');
           }
 
-          if (button.image_id === undefined || button.image_id === null) {
+          if (!button.image_id) {
             this.warn('button.image_id is recommended');
           }
 
@@ -630,13 +672,59 @@ export class Validator {
             this.err('button.action must start with either : or + if defined');
           }
 
+          if (button.actions && !Array.isArray(button.actions)) {
+            this.err('button.actions must be an array of strings');
+          }
+
+          const buttonAttrs = [
+            'id',
+            'label',
+            'vocalization',
+            'image_id',
+            'sound_id',
+            'hidden',
+            'background_color',
+            'border_color',
+            'action',
+            'actions',
+            'load_board',
+            'top',
+            'left',
+            'width',
+            'height',
+          ];
+          Object.keys(button).forEach((key) => {
+            if (!buttonAttrs.includes(key) && !key.startsWith('ext_')) {
+              this.warn(
+                `button.${key} attribute is not defined in the spec, should be prefixed with ext_yourapp_`
+              );
+            }
+          });
+
           if (button.load_board && button.load_board.path) {
             if (!opts.zipper) {
               this.err("button.load_board.path is set but this isn't a zipped file");
-            } else if (!opts.zipper.file(button.load_board.path)) {
-              this.err(
-                `button.load_board.path references ${button.load_board.path} which isn't found in the zipped file`
-              );
+            } else {
+              const loadBoardFile = opts.zipper.file(button.load_board.path);
+              if (!loadBoardFile) {
+                this.err(
+                  `button.load_board.path references ${button.load_board.path} which isn't found in the zipped file`
+                );
+              } else {
+                try {
+                  const boardStr = await loadBoardFile.async('string');
+                  const boardJson = JSON.parse(boardStr);
+                  if (!boardJson || !boardJson.id) {
+                    this.err(
+                      `button.load_board.path references ${button.load_board.path} which isn't found in the zipped file`
+                    );
+                  }
+                } catch (_e) {
+                  this.err(
+                    `button.load_board.path references ${button.load_board.path} which isn't found in the zipped file`
+                  );
+                }
+              }
             }
           }
         });

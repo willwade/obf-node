@@ -7,17 +7,8 @@ import Sgrid from './converters/sgrid';
 import TouchChat from './converters/touchchat';
 import Snap from './converters/snap';
 import Grid3 from './converters/grid3';
+import Picto4me from './converters/picto4me';
 
-export {
-  Validator,
-  PdfBuilder,
-  Utils,
-  External,
-  Sfy,
-  Sgrid,
-  TouchChat,
-  Snap,
-  Grid3,
-};
+export { Validator, PdfBuilder, Utils, External, Sfy, Sgrid, TouchChat, Snap, Grid3, Picto4me };
 
 export * from './types';

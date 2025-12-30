@@ -26,7 +26,9 @@ const TouchChat = {
 
       const idMappings = new Map<number, string>();
       try {
-        const mappings = db.prepare('SELECT numeric_id, string_id FROM page_id_mapping').all() as any[];
+        const mappings = db
+          .prepare('SELECT numeric_id, string_id FROM page_id_mapping')
+          .all() as any[];
         mappings.forEach((m) => idMappings.set(m.numeric_id, m.string_id));
       } catch (_e) {
         // Ignore

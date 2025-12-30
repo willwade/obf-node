@@ -102,14 +102,21 @@ class PdfBuilder {
           const y = headerHeight + padding + row * (buttonHeight + padding);
 
           // Background
-          const bgColor = button.background_color || (button as any).style?.background_color
-            ? Utils.fix_color(button.background_color || (button as any).style?.background_color, 'hex')
-            : '#ffffff';
-          const borderColor = button.border_color || (button as any).style?.border_color
-            ? Utils.fix_color(button.border_color || (button as any).style?.border_color, 'hex')
-            : '#eeeeee';
+          const bgColor =
+            button.background_color || (button as any).style?.background_color
+              ? Utils.fix_color(
+                  button.background_color || (button as any).style?.background_color,
+                  'hex'
+                )
+              : '#ffffff';
+          const borderColor =
+            button.border_color || (button as any).style?.border_color
+              ? Utils.fix_color(button.border_color || (button as any).style?.border_color, 'hex')
+              : '#eeeeee';
 
-          doc.roundedRect(x, y, buttonWidth, buttonHeight, 5).fillAndStroke(bgColor as any, borderColor as any);
+          doc
+            .roundedRect(x, y, buttonWidth, buttonHeight, 5)
+            .fillAndStroke(bgColor as any, borderColor as any);
 
           // Label
           const label = button.label || button.vocalization || '';
