@@ -1,6 +1,6 @@
 {
   "name": "obf-node",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "Node.js implementation of the Open Board Format (OBF) validator and converter",
   "repository": {
     "type": "git",
