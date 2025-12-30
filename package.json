@@ -14,7 +14,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "bin": {
     "obf-node": "bin/obf-node"
@@ -32,15 +33,26 @@
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "dev": "ts-node src/cli.ts",
     "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "docs": "typedoc"
   },
   "keywords": [
     "obf",
+    "obz",
     "aac",
+    "augmentative-communication",
     "open-board-format",
     "validator",
-    "converter"
+    "converter",
+    "picto4me",
+    "touchchat",
+    "sensory-grid",
+    "accessibility",
+    "communication-board",
+    "speech-generating-device"
   ],
   "author": "Will Wade <willwade@gmail.com>",
   "license": "MIT",
@@ -81,6 +93,7 @@
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "tsup": "^8.5.1",
+    "typedoc": "^0.28.15",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.51.0"
   }

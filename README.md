@@ -1,5 +1,9 @@
 # OBF Node
 
+[![npm version](https://badge.fury.io/js/obf-node.svg)](https://www.npmjs.com/package/obf-node)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![API Documentation](https://img.shields.io/badge/docs-API-blue.svg)](https://willwade.github.io/obf-node/)
+
 Node.js implementation of the Open Board Format (OBF) validator and converter. This tool allows you to validate OBF/OBZ files and convert them between various formats including PDF, PNG, SFY, and SGRID.
 
 ## Installation
