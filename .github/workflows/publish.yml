@@ -8,7 +8,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +34,18 @@ jobs:
 
       - name: Set package version
         run: npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version --allow-same-version
+
+      - name: Commit and push version bump
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          if [[ -n $(git status --porcelain) ]]; then
+            git add package*.json
+            git commit -m "chore: bump version to ${{ steps.get_version.outputs.VERSION }} [skip ci]"
+            git push origin HEAD:main
+          else
+            echo "No version change to commit"
+          fi
 
       - name: Build
         run: npm run build
