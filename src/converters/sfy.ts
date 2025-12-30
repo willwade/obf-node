@@ -88,6 +88,7 @@ const Sfy = {
             if (rawButton.symbol) {
               images.push({
                 id: imageCounter.toString(),
+                content_type: 'image/png',
                 symbol: {
                   set: 'sfy',
                   name: rawButton.symbol,
@@ -99,7 +100,7 @@ const Sfy = {
 
             const button: any = {
               id: buttonCounter.toString(),
-              label: rawButton.word,
+              label: rawButton.word || ' ',
               background_color: colors[rawButton.backgroundColorID] || 'rgb(255,255,255)',
               image_id: imageId !== null ? imageId.toString() : null,
               hidden: !rawButton.isOpen,

@@ -60,7 +60,7 @@ const Sgrid = {
 
       const button: OBFButton = {
         id: idx.toString(),
-        label: cell.caption,
+        label: cell.caption || ' ',
       };
 
       ['stylepreset', 'scanblock', 'magnifyx', 'magnifyy', 'tooltip', 'directactivate'].forEach(
@@ -111,6 +111,7 @@ const Sgrid = {
 
         const image: OBFImage = {
           id: imageIdCounter.toString(),
+          content_type: 'image/png',
         };
         if (symbolSet) {
           (image as any).symbol = { set: symbolSet, filename };

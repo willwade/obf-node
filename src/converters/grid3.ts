@@ -149,8 +149,8 @@ const Grid3 = {
             const buttonId = `${id}_${idx}`;
             const button: OBFButton = {
               id: buttonId,
-              label: String(caption),
-              vocalization: String(caption),
+              label: String(caption || ' '),
+              vocalization: String(caption || ' '),
               ext_grid3_content_type: content.ContentType,
             };
 

@@ -42,7 +42,7 @@
     "validator",
     "converter"
   ],
-  "author": "",
+  "author": "Will Wade <willwade@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "adm-zip": "^0.5.16",

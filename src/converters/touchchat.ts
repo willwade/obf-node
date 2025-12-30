@@ -118,9 +118,9 @@ const TouchChat = {
           format: 'open-board-0.1',
           buttons: [],
           grid: {
-            rows: 0,
-            columns: 0,
-            order: [],
+            rows: 1,
+            columns: 1,
+            order: [[null]],
           },
           style: {
             background_color: intToHex(style?.bg_color),
@@ -186,8 +186,15 @@ const TouchChat = {
           board.grid!.columns = Math.max(board.grid!.columns, cols);
           board.grid!.rows = Math.max(board.grid!.rows, rows);
 
-          if (board.grid!.order.length === 0) {
-            board.grid!.order = Array.from({ length: rows }, () => Array(cols).fill(null));
+          if (board.grid!.order.length < rows || board.grid!.order[0].length < cols) {
+            const newOrder = Array.from({ length: rows }, () => Array(cols).fill(null));
+            // Copy existing
+            board.grid!.order.forEach((r, rowIdx) => {
+              r.forEach((cell, colIdx) => {
+                if (newOrder[rowIdx]) newOrder[rowIdx][colIdx] = cell;
+              });
+            });
+            board.grid!.order = newOrder;
           }
 
           box.cells.forEach((cell) => {
@@ -197,8 +204,8 @@ const TouchChat = {
 
             const button: OBFButton = {
               id: buttonId,
-              label: cell.label || '',
-              vocalization: cell.message || '',
+              label: cell.label || ' ',
+              vocalization: cell.message || ' ',
               style: {
                 background_color: intToHex(style?.body_color),
                 border_color: intToHex(style?.border_color),

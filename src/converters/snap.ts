@@ -58,9 +58,9 @@ const Snap = {
           format: 'open-board-0.1',
           buttons: [],
           grid: {
-            rows: 0,
-            columns: 0,
-            order: [],
+            rows: 1,
+            columns: 1,
+            order: [[null]],
           },
           style: {
             background_color: pageRow.BackgroundColor
@@ -93,8 +93,8 @@ const Snap = {
         if (board) {
           const button: OBFButton = {
             id: String(btnRow.Id),
-            label: btnRow.Label || '',
-            vocalization: btnRow.Message || btnRow.Label || '',
+            label: btnRow.Label || ' ',
+            vocalization: btnRow.Message || btnRow.Label || ' ',
             style: {
               background_color:
                 btnRow.RefBackgroundColor || btnRow.BackgroundColor

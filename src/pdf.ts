@@ -93,7 +93,7 @@ class PdfBuilder {
 
       for (let row = 0; row < board.grid.rows; row++) {
         for (let col = 0; col < board.grid.columns; col++) {
-          const buttonId = board.grid.order[row][col];
+          const buttonId = board.grid.order[row] ? board.grid.order[row][col] : null;
           const button = (board.buttons || []).find((b) => b.id === buttonId);
 
           if (!button || button.hidden) continue;

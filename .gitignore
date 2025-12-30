@@ -107,3 +107,9 @@ web_modules/
 # Test outputs
 *.pdf
 test_output/
+conversion_test_output/
+test/conversion_test_output/
+**.obz
+**.obf
+!test/samples/*.obf
+!test/samples/*.obz
