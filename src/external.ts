@@ -1,15 +1,28 @@
-const fs = require('fs-extra');
-const Utils = require('./utils-node');
+import fs from 'fs-extra';
+import Utils from './utils';
+import JSZip from 'jszip';
+
+
+export interface PathHash {
+  zip?: JSZip;
+  boards?: Record<string, { path: string }>;
+  images?: Record<string, { path: string }>;
+  sounds?: Record<string, { path: string }>;
+}
 
 const External = {
-  async to_obf(hash, destPath, pathHash = null, toInclude = {}) {
-    const res = {
+  async to_obf(
+    hash: any,
+    destPath: string | null,
+    pathHash: PathHash | null = null,
+    toInclude: { images?: boolean; sounds?: boolean } = {}
+  ): Promise<string | null> {
+    const res: any = {
       format: 'open-board-0.1',
       id: hash.id || Math.random().toString(36).substring(2, 15),
       locale: hash.locale || 'en',
       name: hash.name,
       description_html: hash.description_html,
-      ext_sgrid_titlebartext: hash.ext_sgrid_titlebartext,
       buttons: [],
       images: [],
       sounds: [],
@@ -28,7 +41,7 @@ const External = {
 
     if (toInclude.images) {
       for (const originalImage of images) {
-        const image = {
+        const image: any = {
           id: originalImage.id,
           width: originalImage.width || 300,
           height: originalImage.height || 300,
@@ -60,7 +73,7 @@ const External = {
 
     if (toInclude.sounds) {
       for (const originalSound of sounds) {
-        const sound = {
+        const sound: any = {
           id: originalSound.id,
           duration: originalSound.duration,
           content_type: originalSound.content_type,
@@ -102,21 +115,18 @@ const External = {
     return destPath;
   },
 
-  async to_obz(content, destPath, _opts = {}) {
+  async to_obz(content: any, destPath: string, _opts = {}): Promise<string> {
     let boards = content.boards;
     if (content.id && !boards) {
       boards = [content];
     }
 
-    const paths = {
+    const paths: PathHash & { zip: JSZip } = {
       images: {},
       sounds: {},
       boards: {},
+      zip: new JSZip(),
     };
-
-    const JSZip = require('jszip');
-    const zip = new JSZip();
-    paths.zip = zip;
 
     const rootBoard = boards[0];
     for (const b of boards) {
@@ -125,9 +135,9 @@ const External = {
       await this.to_obf(b, null, paths, { images: true, sounds: true });
     }
 
-    const manifest = {
+    const manifest: any = {
       format: 'open-board-0.1',
-      root: paths.boards[rootBoard.id].path,
+      root: paths.boards![rootBoard.id].path,
       paths: {
         boards: {},
         images: {},
@@ -135,16 +145,16 @@ const External = {
       },
     };
 
-    Object.keys(paths.boards).forEach((id) => (manifest.paths.boards[id] = paths.boards[id].path));
-    Object.keys(paths.images).forEach((id) => (manifest.paths.images[id] = paths.images[id].path));
-    Object.keys(paths.sounds).forEach((id) => (manifest.paths.sounds[id] = paths.sounds[id].path));
+    Object.keys(paths.boards!).forEach((id) => (manifest.paths.boards[id] = paths.boards![id].path));
+    Object.keys(paths.images!).forEach((id) => (manifest.paths.images[id] = paths.images![id].path));
+    Object.keys(paths.sounds!).forEach((id) => (manifest.paths.sounds[id] = paths.sounds![id].path));
 
-    await zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+    await paths.zip.file('manifest.json', JSON.stringify(manifest, null, 2));
 
-    const buffer = await zip.generateAsync({ type: 'nodebuffer' });
+    const buffer = await paths.zip.generateAsync({ type: 'nodebuffer' });
     await fs.writeFile(destPath, buffer);
     return destPath;
   },
 };
 
-module.exports = External;
+export default External;

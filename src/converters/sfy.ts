@@ -1,22 +1,22 @@
-const plist = require('plist');
-const fs = require('fs-extra');
+import plist from 'plist';
+import fs from 'fs-extra';
+import { OBFPage, OBFImage, OBFButton } from '../types';
 
 const Sfy = {
-  async to_external(filePath) {
+  async to_external(filePath: string): Promise<{ boards: OBFPage[]; images: OBFImage[]; sounds: any[] }> {
     const content = await fs.readFile(filePath, 'utf8');
-    const data = plist.parse(content);
+    const data = plist.parse(content) as any;
 
-    const _top = data['$top']['root'];
     const objects = data['$objects'];
 
-    const items = {
+    const items: { strings: Record<number, string>; buttons: any[] } = {
       strings: {},
       buttons: [],
     };
-    const boardIds = {};
-    const images = [];
+    const boardIds: Record<number, boolean> = {};
+    const images: OBFImage[] = [];
 
-    objects.forEach((item, idx) => {
+    objects.forEach((item: any, idx: number) => {
       if (typeof item === 'string') {
         items.strings[idx] = item;
       } else if (item && typeof item === 'object' && item.mScreen !== undefined) {
@@ -27,10 +27,10 @@ const Sfy = {
       }
     });
 
-    const boards = [];
+    const boards: OBFPage[] = [];
     let imageCounter = 0;
 
-    const colors = {
+    const colors: Record<number, string> = {
       0: 'rgb(255, 255, 255)', // white
       1: 'rgb(255, 0, 0)', // red
       3: 'rgb(255, 112, 156)', // red pink
@@ -59,7 +59,7 @@ const Sfy = {
 
     Object.keys(boardIds).forEach((screenIdx) => {
       const idx = parseInt(screenIdx);
-      let name = idx === 0 ? 'HOME' : `Screen ${idx}`;
+      const name = idx === 0 ? 'HOME' : `Screen ${idx}`;
 
       const rawButtons = items.buttons.filter((b) => b.mScreen === idx);
       let maxRow = 0;
@@ -77,27 +77,27 @@ const Sfy = {
         order: Array.from({ length: rows }, () => Array(columns).fill(null)),
       };
 
-      const buttons = [];
+      const buttons: OBFButton[] = [];
       let buttonCounter = 0;
 
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < columns; j++) {
           const rawButton = rawButtons.find((b) => b.mRow === i && b.mColumn === j);
           if (rawButton) {
-            let imageId = null;
+            let imageId: number | null = null;
             if (rawButton.symbol) {
               images.push({
-                id: imageCounter,
+                id: imageCounter.toString(),
                 symbol: {
                   set: 'sfy',
                   name: rawButton.symbol,
                 },
-              });
+              } as OBFImage);
               imageId = imageCounter;
               imageCounter++;
             }
 
-            const button = {
+            const button: any = {
               id: buttonCounter.toString(),
               label: rawButton.word,
               background_color: colors[rawButton.backgroundColorID] || 'rgb(255,255,255)',
@@ -127,8 +127,11 @@ const Sfy = {
       boards.push({
         id: idx.toString(),
         name,
+        format: 'open-board-0.1',
         buttons,
         grid,
+        images: [],
+        sounds: [],
         ext_sfy_screen: idx,
       });
     });
@@ -141,4 +144,4 @@ const Sfy = {
   },
 };
 
-module.exports = Sfy;
+export default Sfy;

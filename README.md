@@ -5,7 +5,8 @@ Node.js implementation of the Open Board Format (OBF) validator and converter. T
 ## Installation
 
 ```bash
-npm install obf-node
+npm install
+npm run build
 ```
 
 ## CLI Usage
@@ -25,7 +26,6 @@ obf-node validate path/to/board.obf
 - **.gridset** (Grid3)
 - **.obz** (Open Board Zip)
 - **.obf** (Open Board Format)
-- **.avz** (Asterics Grid)
 - **.json** (Generic OBF JSON)
 
 ### Convert between formats
@@ -48,10 +48,10 @@ obf-node convert path/to/board.sfy output.obz
 obf-node convert path/to/board.sgrid output.obf
 ```
 
-## Library Usage
+## Library Usage (TypeScript/ESM)
 
-```javascript
-const { Validator, PdfBuilder, Utils, External } = require('obf-node');
+```typescript
+import { Validator, PdfBuilder, Utils, External } from 'obf-node';
 
 // Validate
 const result = await Validator.validate_file('path/to/board.obf');
@@ -64,6 +64,33 @@ await PdfBuilder.build(board, 'output.pdf');
 // Package OBF into OBZ
 await External.to_obz(board, 'output.obz');
 ```
+
+### Browser Usage
+
+The library is now universal and can be used in the browser. File-system based methods (`validate_file`, `load_obf`) are only available in Node.js, but you can use `validate_content` and `load_obf_content` with a `Buffer`, `Uint8Array`, or `Blob`.
+
+```typescript
+import { Validator, Utils } from 'obf-node';
+
+const file = // ... get from input type="file"
+const arrayBuffer = await file.arrayBuffer();
+const uint8Array = new Uint8Array(arrayBuffer);
+
+// Validate content
+const result = await Validator.validate_content(uint8Array, file.name, file.size);
+
+// Load OBF data
+const board = await Utils.load_obf_content(uint8Array, file.name);
+```
+
+## Development
+
+-   `npm run build`: Compile TypeScript to `dist`
+-   `npm run dev`: Run the CLI directly from TS source using `ts-node`
+-   `npm test`: Run tests
+-   `npm run lint`: Lint the codebase
+-   `npm run format`: Format the codebase with Prettier
+
 
 ## Requirements for PNG Conversion
 

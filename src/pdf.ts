@@ -1,10 +1,18 @@
-const PDFDocument = require('pdfkit');
-const fs = require('fs-extra');
-const Utils = require('./utils-node');
-const axios = require('axios');
+import PDFDocument from 'pdfkit';
+import fs from 'fs-extra';
+import Utils from './utils';
+import axios from 'axios';
+import { OBFPage, OBZPackage } from './types';
+
+export interface PdfOptions {
+  headerless?: boolean;
+  text_on_top?: boolean;
+  pageNum?: number;
+  totalPages?: number;
+}
 
 class PdfBuilder {
-  static async build(obj, destPath, opts = {}) {
+  static async build(obj: any, destPath: string, opts: PdfOptions = {}): Promise<string> {
     const doc = new PDFDocument({
       layout: 'landscape',
       size: [11 * 72, 8.5 * 72], // Letter landscape
@@ -19,19 +27,21 @@ class PdfBuilder {
 
     if (obj.boards && obj.boards.length > 0) {
       // Multi-page (OBZ)
-      for (let i = 0; i < obj.boards.length; i++) {
-        const board = obj.boards[i];
+      const pkg = obj as OBZPackage;
+      for (let i = 0; i < pkg.boards.length; i++) {
+        const board = pkg.boards[i];
         doc.addPage();
         await this.buildPage(doc, board, {
           ...opts,
           pageNum: i + 1,
-          totalPages: obj.boards.length,
+          totalPages: pkg.boards.length,
         });
       }
     } else {
       // Single page
+      const board = obj as OBFPage;
       doc.addPage();
-      await this.buildPage(doc, obj, opts);
+      await this.buildPage(doc, board, opts);
     }
 
     doc.end();
@@ -42,9 +52,9 @@ class PdfBuilder {
     });
   }
 
-  static async buildPage(doc, board, opts) {
-    const docWidth = doc.page.width;
-    const docHeight = doc.page.height;
+  static async buildPage(doc: typeof PDFDocument, board: OBFPage, opts: PdfOptions) {
+    const docWidth = (doc as any).page.width;
+    const docHeight = (doc as any).page.height;
     const headerHeight = opts.headerless ? 0 : 80;
     const padding = 10;
     const textHeight = 20;
@@ -65,7 +75,7 @@ class PdfBuilder {
       buttons.forEach((btn) => {
         doc
           .rect(btn.x, 10, btn.w || 80, 60)
-          .fill(btn.color)
+          .fill(btn.color as any)
           .stroke('#888888');
         doc
           .fillColor('#000000')
@@ -92,21 +102,21 @@ class PdfBuilder {
           const y = headerHeight + padding + row * (buttonHeight + padding);
 
           // Background
-          const bgColor = button.background_color
-            ? Utils.fix_color(button.background_color, 'hex')
+          const bgColor = button.background_color || (button as any).style?.background_color
+            ? Utils.fix_color(button.background_color || (button as any).style?.background_color, 'hex')
             : '#ffffff';
-          const borderColor = button.border_color
-            ? Utils.fix_color(button.border_color, 'hex')
+          const borderColor = button.border_color || (button as any).style?.border_color
+            ? Utils.fix_color(button.border_color || (button as any).style?.border_color, 'hex')
             : '#eeeeee';
 
-          doc.roundedRect(x, y, buttonWidth, buttonHeight, 5).fillAndStroke(bgColor, borderColor);
+          doc.roundedRect(x, y, buttonWidth, buttonHeight, 5).fillAndStroke(bgColor as any, borderColor as any);
 
           // Label
           const label = button.label || button.vocalization || '';
-          const fontColor = button.style?.font_color
-            ? Utils.fix_color(button.style.font_color, 'hex')
+          const fontColor = (button as any).style?.font_color
+            ? Utils.fix_color((button as any).style.font_color, 'hex')
             : '#000000';
-          doc.fillColor(fontColor).fontSize(12);
+          doc.fillColor(fontColor as any).fontSize(12);
 
           const labelY = opts.text_on_top ? y + 5 : y + buttonHeight - textHeight - 5;
           doc.text(label, x, labelY, { width: buttonWidth, align: 'center' });
@@ -116,7 +126,7 @@ class PdfBuilder {
             const image = (board.images || []).find((i) => i.id === button.image_id);
             if (image) {
               try {
-                let imageBuffer;
+                let imageBuffer: Buffer | null = null;
                 if (image.data) {
                   // Data URI or raw Base64
                   const base64Data = image.data.includes(',')
@@ -126,22 +136,19 @@ class PdfBuilder {
                 } else if (image.url) {
                   // Remote URL
                   const response = await axios.get(image.url, { responseType: 'arraybuffer' });
-                  imageBuffer = Buffer.from(response.data, 'binary');
+                  imageBuffer = Buffer.from(response.data);
                 }
 
                 if (imageBuffer) {
-                  // pdfkit doesn't support SVG, so we'd need to convert it if it's SVG
-                  // For now, we'll just try to draw it and catch errors
                   const imgY = opts.text_on_top ? y + textHeight + 5 : y + 5;
                   const imgHeight = buttonHeight - textHeight - 10;
                   doc.image(imageBuffer, x + 5, imgY, {
                     fit: [buttonWidth - 10, imgHeight],
                     align: 'center',
                     valign: 'center',
-                  });
+                  } as any);
                 }
               } catch (_e) {
-                // console.error(`Error rendering image ${image.id}: ${e.message}`);
                 // Fallback to placeholder or just skip
                 doc.rect(x + 10, y + 10, buttonWidth - 20, buttonHeight - 40).stroke();
                 doc
@@ -156,4 +163,4 @@ class PdfBuilder {
   }
 }
 
-module.exports = PdfBuilder;
+export default PdfBuilder;

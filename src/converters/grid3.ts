@@ -1,13 +1,16 @@
-const path = require('path');
-const AdmZip = require('adm-zip');
-const { XMLParser } = require('fast-xml-parser');
+import path from 'path';
+import AdmZip from 'adm-zip';
+import { XMLParser } from 'fast-xml-parser';
+import xml2js from 'xml2js';
+import { OBZPackage, OBFPage, OBFButton } from '../types';
 
 const Grid3 = {
-  async to_external(filePath) {
+  async to_external(filePath: string): Promise<OBZPackage> {
     const zip = new AdmZip(filePath);
     const parser = new XMLParser({ ignoreAttributes: false });
 
-    const result = {
+    const result: OBZPackage = {
+      format: 'open-board-0.1',
       boards: [],
       images: [],
       sounds: [],
@@ -18,9 +21,9 @@ const Grid3 = {
       (e) => e.entryName.startsWith('Grids/') && e.entryName.endsWith('grid.xml')
     );
 
-    const gridNameToIdMap = new Map();
+    const gridNameToIdMap = new Map<string, string>();
 
-    const readEntry = (entry) => {
+    const readEntry = (entry: AdmZip.IZipEntry) => {
       return entry.getData().toString('utf8');
     };
 
@@ -56,7 +59,7 @@ const Grid3 = {
         const cols = Array.isArray(columnDefs) ? columnDefs.length : columnDefs ? 1 : 5;
         const rows = Array.isArray(rowDefs) ? rowDefs.length : rowDefs ? 1 : 4;
 
-        const fileMapIndex = new Map();
+        const fileMapIndex = new Map<string, string[]>();
         try {
           const fmEntry = zip.getEntries().find((e) => e.entryName.endsWith('FileMap.xml'));
           if (fmEntry) {
@@ -71,7 +74,7 @@ const Grid3 = {
               const files = df?.File || df?.file || [];
               fileMapIndex.set(
                 staticFile,
-                (Array.isArray(files) ? files : [files]).map((f) =>
+                (Array.isArray(files) ? files : [files]).map((f: any) =>
                   (typeof f === 'string' ? f : f['_'] || '').replace(/\\/g, '/')
                 )
               );
@@ -82,9 +85,10 @@ const Grid3 = {
         }
 
         const gridEntryPath = entry.entryName.replace(/\\/g, '/');
-        const board = {
+        const board: OBFPage = {
           id,
           name,
+          format: 'open-board-0.1',
           buttons: [],
           grid: {
             rows,
@@ -95,13 +99,14 @@ const Grid3 = {
             background_color: grid.BackgroundColour || grid.backgroundColour,
           },
           images: [],
+          sounds: [],
         };
 
         if (grid.WordList) {
-          board.ext_grid3_wordlist = grid.WordList;
+          (board as any).ext_grid3_wordlist = grid.WordList;
         }
 
-        const resolveImage = (cellX, cellY, declaredName) => {
+        const resolveImage = (cellX: number, cellY: number, declaredName: string) => {
           const baseDir = gridEntryPath.replace(/\/grid\.xml$/, '/');
           const dynamicFiles = fileMapIndex.get(gridEntryPath) || [];
 
@@ -129,7 +134,7 @@ const Grid3 = {
         const cells = grid.Cells?.Cell || grid.cells?.cell;
         if (cells) {
           const cellArr = Array.isArray(cells) ? cells : [cells];
-          cellArr.forEach((cell, idx) => {
+          cellArr.forEach((cell: any, idx: number) => {
             const cellX = Math.max(0, parseInt(String(cell['@_X'] || '1')) - 1);
             const cellY = Math.max(0, parseInt(String(cell['@_Y'] || '1')) - 1);
             const content = cell.Content;
@@ -142,7 +147,7 @@ const Grid3 = {
             }
 
             const buttonId = `${id}_${idx}`;
-            const button = {
+            const button: OBFButton = {
               id: buttonId,
               label: String(caption),
               vocalization: String(caption),
@@ -154,7 +159,7 @@ const Grid3 = {
             const imgEntry = resolveImage(cellX, cellY, declaredImage);
             if (imgEntry) {
               const entryName = imgEntry.entryName;
-              let imgObj = board.images.find((i) => i.ext_grid3_entry === entryName);
+              let imgObj = (board.images as any[]).find((i) => i.ext_grid3_entry === entryName);
               if (!imgObj) {
                 const imgId = `img_${board.images.length}`;
                 const ext = path.extname(entryName).toLowerCase();
@@ -177,11 +182,11 @@ const Grid3 = {
             const commands = content.Commands?.Command || content.commands?.command;
             if (commands) {
               const cmdArr = Array.isArray(commands) ? commands : [commands];
-              const jump = cmdArr.find((c) => (c['@_ID'] || c.id) === 'Jump.To');
+              const jump = cmdArr.find((c: any) => (c['@_ID'] || c.id) === 'Jump.To');
               if (jump) {
                 const params = jump.Parameter || jump.parameter;
                 const paramArr = Array.isArray(params) ? params : [params];
-                const gridParam = paramArr.find((p) => p['@_Key'] === 'grid');
+                const gridParam = paramArr.find((p: any) => p['@_Key'] === 'grid');
                 if (gridParam) {
                   const targetName = gridParam['#text'] || gridParam.text;
                   const targetId = gridNameToIdMap.get(String(targetName)) || String(targetName);
@@ -191,8 +196,8 @@ const Grid3 = {
             }
 
             board.buttons.push(button);
-            if (board.grid.order[cellY] && board.grid.order[cellY][cellX] === null) {
-              board.grid.order[cellY][cellX] = buttonId;
+            if (board.grid!.order[cellY] && board.grid!.order[cellY][cellX] === null) {
+              board.grid!.order[cellY][cellX] = buttonId;
             }
           });
         }
@@ -205,16 +210,15 @@ const Grid3 = {
 
     return result;
   },
-  async from_external(obf, outputPath) {
-    const xml2js = require('xml2js');
+  async from_external(obf: any, outputPath: string): Promise<void> {
     const builder = new xml2js.Builder();
     const zip = new AdmZip();
 
-    const fixXmlAttributes = (obj) => {
+    const fixXmlAttributes = (obj: any): any => {
       if (typeof obj !== 'object' || obj === null) return obj;
       if (Array.isArray(obj)) return obj.map(fixXmlAttributes);
-      const newObj = {};
-      const attrs = {};
+      const newObj: any = {};
+      const attrs: any = {};
       let hasAttrs = false;
       for (const [key, val] of Object.entries(obj)) {
         if (key.startsWith('@_')) {
@@ -231,11 +235,11 @@ const Grid3 = {
     };
 
     const boards = obf.boards || [obf];
-    boards.forEach((board) => {
+    boards.forEach((board: any) => {
       if (!board.name) board.name = board.id || 'board';
       const safeName = board.name.replace(/[/\\?%*:|"<>]/g, '_');
 
-      const gridXml = {
+      const gridXml: any = {
         Grid: {
           GridGuid: String(board.id),
           Name: String(board.name),
@@ -249,12 +253,12 @@ const Grid3 = {
             RowDefinition: Array.from({ length: board.grid?.rows || 1 }).map(() => ({ Width: 1 })),
           },
           Cells: {
-            Cell: board.buttons.map((btn) => {
+            Cell: board.buttons.map((btn: any) => {
               // Find position
               let x = 1,
                 y = 1;
               if (board.grid?.order) {
-                board.grid.order.forEach((row, r) => {
+                board.grid.order.forEach((row: any[], r: number) => {
                   row.forEach((bid, c) => {
                     if (bid === btn.id) {
                       x = c + 1;
@@ -264,7 +268,7 @@ const Grid3 = {
                 });
               }
 
-              const cell = {
+              const cell: any = {
                 $: { X: String(x), Y: String(y), ColumnSpan: '1', RowSpan: '1' },
                 Content: {
                   $: { ContentType: String(btn.ext_grid3_content_type || 'Normal') },
@@ -278,7 +282,7 @@ const Grid3 = {
               };
 
               if (btn.image_id) {
-                const img = (obf.images || []).find((i) => i.id === btn.image_id);
+                const img = (obf.images || []).find((i: any) => i.id === btn.image_id);
                 if (img) {
                   const imageName = img.ext_grid3_entry || `${x}-${y}-0-text-0.png`;
                   cell.Content.CaptionAndImage.Image = imageName;
@@ -316,4 +320,4 @@ const Grid3 = {
   },
 };
 
-module.exports = Grid3;
+export default Grid3;

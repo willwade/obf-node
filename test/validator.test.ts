@@ -1,5 +1,5 @@
-const Validator = require('../src/validator-node');
-const path = require('path');
+import { Validator } from '../src/validator';
+import path from 'path';
 
 describe('Validator', () => {
   const samplesDir = path.join(__dirname, 'samples');

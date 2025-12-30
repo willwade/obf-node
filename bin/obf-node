@@ -1,2 +1,18 @@
 #!/usr/bin/env node
-require('../src/cli.js');
+const path = require('path');
+const fs = require('fs');
+
+const distCli = path.join(__dirname, '../dist/cli.js');
+
+if (fs.existsSync(distCli)) {
+  require(distCli).run();
+} else {
+  // For development if dist doesn't exist
+  try {
+    require('ts-node/register');
+    require('../src/cli.ts').run();
+  } catch (e) {
+    console.error('Error: obf-node must be built (npm run build) before running from the binary.');
+    process.exit(1);
+  }
+}

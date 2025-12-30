@@ -1,21 +1,22 @@
-const fs = require('fs-extra');
-const Database = require('better-sqlite3');
+import fs from 'fs-extra';
+import Database from 'better-sqlite3';
+import { OBFPage, OBFImage, OBZPackage, OBFButton } from '../types';
 
 const Snap = {
-  async to_external(filePath) {
-    let db = null;
+  async to_external(filePath: string): Promise<OBZPackage> {
+    let db: Database.Database | null = null;
     try {
       db = new Database(filePath, { readonly: true });
 
-      const pages = db.prepare('SELECT * FROM Page').all();
-      const idToUniqueId = {};
+      const pages = db.prepare('SELECT * FROM Page').all() as any[];
+      const idToUniqueId: Record<string, string> = {};
       pages.forEach((p) => {
         idToUniqueId[String(p.Id)] = String(p.UniqueId || p.Id);
       });
 
-      const pageSetProps = {};
+      const pageSetProps: any = {};
       try {
-        const props = db.prepare('SELECT * FROM PageSetProperties LIMIT 1').get();
+        const props = db.prepare('SELECT * FROM PageSetProperties LIMIT 1').get() as any;
         if (props) {
           Object.assign(pageSetProps, props);
         }
@@ -23,11 +24,11 @@ const Snap = {
         // Ignore
       }
 
-      const imagesMap = new Map();
+      const imagesMap = new Map<number, OBFImage>();
       try {
         const images = db
           .prepare('SELECT Id, Identifier, Data FROM PageSetData WHERE Identifier LIKE "IMG:%"')
-          .all();
+          .all() as any[];
         images.forEach((img) => {
           imagesMap.set(img.Id, {
             id: `img_${img.Id}`,
@@ -40,19 +41,21 @@ const Snap = {
         // Ignore
       }
 
-      const result = {
+      const result: OBZPackage = {
+        format: 'open-board-0.1',
         boards: [],
         images: [],
         sounds: [],
       };
 
-      const boardsMap = new Map();
+      const boardsMap = new Map<number, OBFPage>();
 
       pages.forEach((pageRow) => {
         const uniqueId = idToUniqueId[String(pageRow.Id)];
-        const board = {
+        const board: OBFPage = {
           id: uniqueId,
           name: pageRow.Title || pageRow.Name || '',
+          format: 'open-board-0.1',
           buttons: [],
           grid: {
             rows: 0,
@@ -65,6 +68,7 @@ const Snap = {
               : undefined,
           },
           images: [],
+          sounds: [],
           ext_snap_technical_id: pageRow.Id,
           ext_snap_pageset_properties: pageSetProps,
         };
@@ -82,12 +86,12 @@ const Snap = {
         GROUP BY b.Id
       `
         )
-        .all();
+        .all() as any[];
 
       buttons.forEach((btnRow) => {
-        const board = result.boards.find((b) => b.ext_snap_technical_id === btnRow.PageId);
+        const board = result.boards.find((b: any) => b.ext_snap_technical_id === btnRow.PageId);
         if (board) {
-          const button = {
+          const button: OBFButton = {
             id: String(btnRow.Id),
             label: btnRow.Label || '',
             vocalization: btnRow.Message || btnRow.Label || '',
@@ -107,7 +111,7 @@ const Snap = {
           };
 
           if (btnRow.PageSetImageId && imagesMap.has(btnRow.PageSetImageId)) {
-            const img = imagesMap.get(btnRow.PageSetImageId);
+            const img = imagesMap.get(btnRow.PageSetImageId)!;
             if (!board.images.find((i) => i.id === img.id)) {
               board.images.push(img);
             }
@@ -119,40 +123,40 @@ const Snap = {
           }
           board.buttons.push(button);
 
-          const pos = btnRow.GridPosition;
+          const pos = btnRow.GridPosition as string;
           if (pos && pos.includes(',')) {
             const [x, y] = pos.split(',').map((n) => parseInt(n));
-            board.grid.columns = Math.max(board.grid.columns, x + 1);
-            board.grid.rows = Math.max(board.grid.rows, y + 1);
-            if (!board.grid.order[y]) {
-              for (let i = board.grid.order.length; i <= y; i++) {
-                board.grid.order[i] = [];
+            board.grid!.columns = Math.max(board.grid!.columns, x + 1);
+            board.grid!.rows = Math.max(board.grid!.rows, y + 1);
+            if (!board.grid!.order[y]) {
+              for (let i = board.grid!.order.length; i <= y; i++) {
+                board.grid!.order[i] = [];
               }
             }
-            board.grid.order[y][x] = button.id;
+            board.grid!.order[y][x] = button.id;
           }
         }
       });
 
       // Normalize grid order and handle pages with buttons but no grid
       result.boards.forEach((board) => {
-        if (board.buttons.length > 0 && (board.grid.rows === 0 || board.grid.columns === 0)) {
+        if (board.buttons.length > 0 && (board.grid!.rows === 0 || board.grid!.columns === 0)) {
           // Default 4xX grid if no positions
-          board.grid.columns = 4;
-          board.grid.rows = Math.ceil(board.buttons.length / 4);
-          board.grid.order = Array.from({ length: board.grid.rows }, () => Array(4).fill(null));
+          board.grid!.columns = 4;
+          board.grid!.rows = Math.ceil(board.buttons.length / 4);
+          board.grid!.order = Array.from({ length: board.grid!.rows }, () => Array(4).fill(null));
           board.buttons.forEach((btn, idx) => {
             const r = Math.floor(idx / 4);
             const c = idx % 4;
-            board.grid.order[r][c] = btn.id;
+            board.grid!.order[r][c] = btn.id;
           });
         }
 
-        for (let r = 0; r < board.grid.rows; r++) {
-          if (!board.grid.order[r]) board.grid.order[r] = [];
-          for (let c = 0; c < board.grid.columns; c++) {
-            if (board.grid.order[r][c] === undefined) {
-              board.grid.order[r][c] = null;
+        for (let r = 0; r < board.grid!.rows; r++) {
+          if (!board.grid!.order[r]) board.grid!.order[r] = [];
+          for (let c = 0; c < board.grid!.columns; c++) {
+            if (board.grid!.order[r][c] === undefined) {
+              board.grid!.order[r][c] = null;
             }
           }
         }
@@ -163,7 +167,7 @@ const Snap = {
       if (db) db.close();
     }
   },
-  async from_external(obf, outputPath) {
+  async from_external(obf: any, outputPath: string): Promise<void> {
     if (fs.existsSync(outputPath)) {
       fs.unlinkSync(outputPath);
     }
@@ -180,8 +184,8 @@ const Snap = {
       `);
 
       const boards = obf.boards || [obf];
-      const pageIdMap = new Map();
-      const imageIdMap = new Map();
+      const pageIdMap = new Map<string, number>();
+      const imageIdMap = new Map<string, number>();
 
       // Insert PageSetProperties (minimal)
       db.prepare('INSERT INTO PageSetProperties (Language) VALUES (?)').run(obf.locale || 'en');
@@ -189,7 +193,7 @@ const Snap = {
       // Insert Images (PageSetData)
       let imageDataId = 1;
       const images = obf.images || [];
-      images.forEach((img) => {
+      images.forEach((img: any) => {
         if (img.data) {
           const identifier = img.ext_snap_identifier || `IMG:${img.id}`;
           const data = Buffer.from(img.data, 'base64');
@@ -205,7 +209,7 @@ const Snap = {
 
       // Insert Pages
       let pageId = 1;
-      boards.forEach((board) => {
+      boards.forEach((board: any) => {
         const numericId = pageId++;
         pageIdMap.set(board.id, numericId);
         db.prepare(
@@ -222,14 +226,14 @@ const Snap = {
       });
 
       // Insert Buttons & References
-      let buttonId = 1;
-      let refId = 1;
-      let placementId = 1;
+      let buttonIdCounter = 1;
+      let refIdCounter = 1;
+      let placementIdCounter = 1;
 
-      boards.forEach((board) => {
+      boards.forEach((board: any) => {
         const numericPageId = pageIdMap.get(board.id);
-        board.buttons.forEach((btn, _idx) => {
-          const numericRefId = refId++;
+        board.buttons.forEach((btn: any) => {
+          const numericRefId = refIdCounter++;
           db.prepare(
             'INSERT INTO ElementReference (Id, PageId, BackgroundColor, ForegroundColor) VALUES (?, ?, ?, ?)'
           ).run(
@@ -249,7 +253,7 @@ const Snap = {
           db.prepare(
             'INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId, PageSetImageId, BorderColor) VALUES (?, ?, ?, ?, ?, ?, ?)'
           ).run(
-            buttonId++,
+            buttonIdCounter++,
             btn.label,
             btn.vocalization || btn.label,
             navigateId,
@@ -261,7 +265,7 @@ const Snap = {
           // Find position
           let pos = '0,0';
           if (board.grid?.order) {
-            board.grid.order.forEach((row, r) => {
+            board.grid.order.forEach((row: any[], r: number) => {
               row.forEach((bid, c) => {
                 if (bid === btn.id) pos = `${c},${r}`;
               });
@@ -270,13 +274,13 @@ const Snap = {
 
           db.prepare(
             'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)'
-          ).run(placementId++, numericRefId, pos);
+          ).run(placementIdCounter++, numericRefId, pos);
         });
       });
     } finally {
-      db.close();
+      if (db) db.close();
     }
   },
 };
 
-module.exports = Snap;
+export default Snap;

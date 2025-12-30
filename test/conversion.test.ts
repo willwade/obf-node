@@ -1,6 +1,6 @@
-const { Sfy, Sgrid, External, Utils } = require('../src');
-const path = require('path');
-const fs = require('fs-extra');
+import { Sfy, Sgrid, External, Utils } from '../src';
+import path from 'path';
+import fs from 'fs-extra';
 
 describe('Converters', () => {
   const samplesDir = path.join(__dirname, 'samples');
@@ -10,14 +10,15 @@ describe('Converters', () => {
     const result = await Sfy.to_external(filePath);
     expect(result.boards).toBeDefined();
     expect(result.boards.length).toBeGreaterThan(0);
-    expect(result.boards[0].format).toBeUndefined(); // External hash doesn't have format yet
+    // In the new TS version, boards returned by Sfy.to_external are OBFPage objects which have format
+    expect(result.boards[0].format).toBe('open-board-0.1');
   });
 
   test('converts grid.xml to OBF', async () => {
     const filePath = path.join(samplesDir, 'grid.xml');
     const result = await Sgrid.to_external(filePath);
     expect(result.buttons).toBeDefined();
-    expect(result.grid.rows).toBeGreaterThan(0);
+    expect(result.grid!.rows).toBeGreaterThan(0);
   });
 
   test('packages OBF into OBZ', async () => {

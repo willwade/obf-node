@@ -1,14 +1,15 @@
-const fs = require('fs-extra');
-const path = require('path');
-const os = require('os');
-const AdmZip = require('adm-zip');
-const Database = require('better-sqlite3');
+import fs from 'fs-extra';
+import path from 'path';
+import os from 'os';
+import AdmZip from 'adm-zip';
+import Database from 'better-sqlite3';
+import { OBFPage, OBFImage, OBZPackage, OBFButton } from '../types';
 
 const TouchChat = {
-  async to_external(filePath) {
+  async to_external(filePath: string): Promise<OBZPackage> {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-'));
-    let db = null;
-    let imageDb = null;
+    let db: Database.Database | null = null;
+    let imageDb: Database.Database | null = null;
 
     try {
       const zip = new AdmZip(filePath);
@@ -23,51 +24,51 @@ const TouchChat = {
       const dbPath = path.join(tmpDir, vocabFile);
       db = new Database(dbPath, { readonly: true });
 
-      const idMappings = new Map();
+      const idMappings = new Map<number, string>();
       try {
-        const mappings = db.prepare('SELECT numeric_id, string_id FROM page_id_mapping').all();
+        const mappings = db.prepare('SELECT numeric_id, string_id FROM page_id_mapping').all() as any[];
         mappings.forEach((m) => idMappings.set(m.numeric_id, m.string_id));
       } catch (_e) {
         // Ignore
       }
 
-      const variables = {};
+      const variables: Record<string, any> = {};
       try {
         db.prepare('SELECT name, value FROM variables')
           .all()
-          .forEach((v) => {
+          .forEach((v: any) => {
             variables[v.name] = v.value;
           });
       } catch (_e) {
         // Ignore
       }
 
-      const buttonStyles = new Map();
-      const pageStyles = new Map();
+      const buttonStyles = new Map<number, any>();
+      const pageStyles = new Map<number, any>();
       try {
         db.prepare('SELECT * FROM button_styles')
           .all()
-          .forEach((s) => buttonStyles.set(s.id, s));
+          .forEach((s: any) => buttonStyles.set(s.id, s));
         db.prepare('SELECT * FROM page_styles')
           .all()
-          .forEach((s) => pageStyles.set(s.id, s));
+          .forEach((s: any) => pageStyles.set(s.id, s));
       } catch (_e) {
         // Ignore
       }
 
-      const intToHex = (colorInt) => {
+      const intToHex = (colorInt: number | null | undefined): string | undefined => {
         if (colorInt === null || typeof colorInt === 'undefined') return undefined;
         return `#${(colorInt & 0x00ffffff).toString(16).padStart(6, '0')}`;
       };
 
       const imageDbPath = path.join(tmpDir, 'Images.c4s');
-      const imagesMap = new Map();
+      const imagesMap = new Map<number, OBFImage>();
       if (fs.existsSync(imageDbPath)) {
         imageDb = new Database(imageDbPath, { readonly: true });
         try {
-          const symbolLinks = db.prepare('SELECT id, rid FROM symbol_links').all();
-          const ridToImage = new Map();
-          const symbols = imageDb.prepare('SELECT rid, data FROM symbols').all();
+          const symbolLinks = db.prepare('SELECT id, rid FROM symbol_links').all() as any[];
+          const ridToImage = new Map<string, Buffer>();
+          const symbols = imageDb.prepare('SELECT rid, data FROM symbols').all() as any[];
           symbols.forEach((s) => {
             ridToImage.set(s.rid, s.data);
           });
@@ -96,23 +97,25 @@ const TouchChat = {
         JOIN resources r ON r.id = p.resource_id
       `
         )
-        .all();
+        .all() as any[];
 
-      const result = {
+      const result: OBZPackage = {
+        format: 'open-board-0.1',
         boards: [],
         images: [],
         sounds: [],
       };
 
-      const boardsMap = new Map();
+      const boardsMap = new Map<number, OBFPage>();
 
       pages.forEach((pageRow) => {
         const pageId = idMappings.get(pageRow.id) || String(pageRow.id);
         const style = pageStyles.get(pageRow.page_style_id);
 
-        const board = {
+        const board: OBFPage = {
           id: pageId,
           name: pageRow.name || '',
+          format: 'open-board-0.1',
           buttons: [],
           grid: {
             rows: 0,
@@ -123,6 +126,7 @@ const TouchChat = {
             background_color: intToHex(style?.bg_color),
           },
           images: [],
+          sounds: [],
           ext_touchchat_variables: variables,
         };
         boardsMap.set(pageRow.id, board);
@@ -138,9 +142,9 @@ const TouchChat = {
         JOIN button_boxes bb ON bb.id = bbc.button_box_id
       `
         )
-        .all();
+        .all() as any[];
 
-      const buttonBoxes = new Map();
+      const buttonBoxes = new Map<number, { cells: any[]; layout_x: number; layout_y: number }>();
       buttonBoxCells.forEach((cell) => {
         if (!buttonBoxes.has(cell.box_id)) {
           buttonBoxes.set(cell.box_id, {
@@ -149,11 +153,11 @@ const TouchChat = {
             layout_y: cell.layout_y,
           });
         }
-        buttonBoxes.get(cell.box_id).cells.push(cell);
+        buttonBoxes.get(cell.box_id)!.cells.push(cell);
       });
 
       // Actions
-      const navActions = new Map();
+      const navActions = new Map<number, number>();
       try {
         db.prepare(
           `
@@ -165,25 +169,25 @@ const TouchChat = {
         `
         )
           .all()
-          .forEach((nav) => {
-            navActions.set(nav.button_id, nav.target_page_id);
+          .forEach((nav: any) => {
+            navActions.set(nav.button_id, parseInt(nav.target_page_id));
           });
       } catch (_e) {
         // Ignore
       }
 
-      const boxInstances = db.prepare('SELECT * FROM button_box_instances').all();
+      const boxInstances = db.prepare('SELECT * FROM button_box_instances').all() as any[];
       boxInstances.forEach((instance) => {
         const board = boardsMap.get(instance.page_id);
         const box = buttonBoxes.get(instance.button_box_id);
         if (board && box) {
           const cols = box.layout_x || instance.size_x || 1;
           const rows = box.layout_y || instance.size_y || 1;
-          board.grid.columns = Math.max(board.grid.columns, cols);
-          board.grid.rows = Math.max(board.grid.rows, rows);
+          board.grid!.columns = Math.max(board.grid!.columns, cols);
+          board.grid!.rows = Math.max(board.grid!.rows, rows);
 
-          if (board.grid.order.length === 0) {
-            board.grid.order = Array.from({ length: rows }, () => Array(cols).fill(null));
+          if (board.grid!.order.length === 0) {
+            board.grid!.order = Array.from({ length: rows }, () => Array(cols).fill(null));
           }
 
           box.cells.forEach((cell) => {
@@ -191,7 +195,7 @@ const TouchChat = {
             const buttonId = String(cell.id);
             const targetId = navActions.get(cell.id);
 
-            const button = {
+            const button: OBFButton = {
               id: buttonId,
               label: cell.label || '',
               vocalization: cell.message || '',
@@ -207,7 +211,7 @@ const TouchChat = {
             }
 
             if (cell.symbol_link_id && imagesMap.has(cell.symbol_link_id)) {
-              const img = imagesMap.get(cell.symbol_link_id);
+              const img = imagesMap.get(cell.symbol_link_id)!;
               if (!board.images.find((i) => i.id === img.id)) {
                 board.images.push(img);
               }
@@ -215,11 +219,11 @@ const TouchChat = {
             }
 
             if (cell.pronunciation) {
-              button.ext_touchchat_pronunciation = cell.pronunciation;
+              (button as any).ext_touchchat_pronunciation = cell.pronunciation;
             }
 
             if (targetId) {
-              const mappedTargetId = idMappings.get(parseInt(targetId)) || String(targetId);
+              const mappedTargetId = idMappings.get(targetId) || String(targetId);
               button.load_board = { id: mappedTargetId };
             }
 
@@ -227,8 +231,8 @@ const TouchChat = {
 
             const x = cell.location % cols;
             const y = Math.floor(cell.location / cols);
-            if (board.grid.order[y]) {
-              board.grid.order[y][x] = buttonId;
+            if (board.grid!.order[y]) {
+              board.grid!.order[y][x] = buttonId;
             }
           });
         }
@@ -246,7 +250,7 @@ const TouchChat = {
       fs.removeSync(tmpDir);
     }
   },
-  async from_external(obf, outputPath) {
+  async from_external(obf: any, outputPath: string): Promise<void> {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-out-'));
     const vocabPath = path.join(tmpDir, 'vocab.c4v');
     const imagesPath = path.join(tmpDir, 'Images.c4s');
@@ -274,20 +278,20 @@ const TouchChat = {
         db.prepare('INSERT INTO variables (name, value) VALUES (?, ?)').run(k, String(v));
       });
 
-      let resId = 1;
-      let pageId = 1;
-      let btnId = 1;
-      let boxId = 1;
-      let actionId = 1;
-      let symLinkId = 1;
+      let resIdCounter = 1;
+      let pageIdCounter = 1;
+      let btnIdCounter = 1;
+      let boxIdCounter = 1;
+      let actionIdCounter = 1;
+      let symLinkIdCounter = 1;
 
       const imageDb = new Database(imagesPath);
       imageDb.exec(
         'CREATE TABLE symbols (id INTEGER PRIMARY KEY, rid TEXT UNIQUE, data BLOB, compressed INTEGER, type INTEGER, width INTEGER, height INTEGER)'
       );
 
-      const imageMap = new Map();
-      (obf.images || []).forEach((img, idx) => {
+      const imageMap = new Map<string, string>();
+      (obf.images || []).forEach((img: any, idx: number) => {
         const rid = `{IMAGE-${idx}}`;
         imageDb
           .prepare(
@@ -298,9 +302,9 @@ const TouchChat = {
       });
       imageDb.close();
 
-      boards.forEach((board) => {
-        const numericPageId = pageId++;
-        const pageResId = resId++;
+      boards.forEach((board: any) => {
+        const numericPageId = pageIdCounter++;
+        const pageResId = resIdCounter++;
         db.prepare('INSERT INTO resources (id, rid, name, type) VALUES (?, ?, ?, ?)').run(
           pageResId,
           `{PAGE-${numericPageId}}`,
@@ -315,8 +319,8 @@ const TouchChat = {
           board.id
         );
 
-        const currentBoxId = boxId++;
-        const boxResId = resId++;
+        const currentBoxId = boxIdCounter++;
+        const boxResId = resIdCounter++;
         db.prepare('INSERT INTO resources (id, rid, name, type) VALUES (?, ?, ?, ?)').run(
           boxResId,
           `{BOX-${currentBoxId}}`,
@@ -331,13 +335,13 @@ const TouchChat = {
           'INSERT INTO button_box_instances (page_id, button_box_id, position_x, position_y, size_x, size_y) VALUES (?, ?, 0, 0, ?, ?)'
         ).run(numericPageId, currentBoxId, board.grid?.columns || 1, board.grid?.rows || 1);
 
-        board.buttons.forEach((btn, idx) => {
-          const numericBtnId = btnId++;
-          const btnResId = resId++;
+        board.buttons.forEach((btn: any, idx: number) => {
+          const numericBtnId = btnIdCounter++;
+          const btnResId = resIdCounter++;
 
           let currentSymId = null;
           if (btn.image_id && imageMap.has(btn.image_id)) {
-            currentSymId = symLinkId++;
+            currentSymId = symLinkIdCounter++;
             db.prepare('INSERT INTO symbol_links (id, rid, feature) VALUES (?, ?, 14)').run(
               currentSymId,
               imageMap.get(btn.image_id)
@@ -362,13 +366,12 @@ const TouchChat = {
           );
 
           if (btn.load_board) {
-            const actId = actionId++;
+            const actId = actionIdCounter++;
             db.prepare('INSERT INTO actions (id, resource_id, rank, code) VALUES (?, ?, 1, 1)').run(
               actId,
               btnResId,
               1
             );
-            // Note: we can't easily map back to numeric target page ID here if it wasn't processed yet, but we'll use a placeholder or ID
             db.prepare('INSERT INTO action_data (action_id, key, value) VALUES (?, 1, ?)').run(
               actId,
               btn.load_board.id
@@ -378,9 +381,9 @@ const TouchChat = {
           // Location
           let loc = idx;
           if (board.grid?.order) {
-            board.grid.order.forEach((row, r) => {
+            board.grid.order.forEach((row: any[], r: number) => {
               row.forEach((bid, c) => {
-                if (bid === btn.id) loc = r * board.grid.columns + c;
+                if (bid === btn.id) loc = r * (board.grid.columns || 1) + c;
               });
             });
           }
@@ -401,4 +404,4 @@ const TouchChat = {
   },
 };
 
-module.exports = TouchChat;
+export default TouchChat;

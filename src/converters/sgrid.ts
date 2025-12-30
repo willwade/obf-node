@@ -1,8 +1,9 @@
-const xml2js = require('xml2js');
-const fs = require('fs-extra');
+import xml2js from 'xml2js';
+import fs from 'fs-extra';
+import { OBFPage, OBFButton, OBFImage } from '../types';
 
 const Sgrid = {
-  async to_external(filePath) {
+  async to_external(filePath: string): Promise<OBFPage> {
     const content = await fs.readFile(filePath, 'utf8');
     const parser = new xml2js.Parser({ explicitArray: false });
     const result = await parser.parseStringPromise(content);
@@ -11,7 +12,7 @@ const Sgrid = {
     const rows = parseInt(gridData.rows);
     const columns = parseInt(gridData.cols);
 
-    const board = {
+    const board: OBFPage = {
       id: 'sgrid',
       format: 'open-board-0.1',
       name: gridData.titlebartext || 'board',
@@ -37,11 +38,11 @@ const Sgrid = {
       'eyegazemonitor_x',
       'eyegazemonitor_y',
     ].forEach((attr) => {
-      if (gridData[attr]) board[extPrefix + attr] = gridData[attr];
+      if (gridData[attr]) (board as any)[extPrefix + attr] = gridData[attr];
     });
 
     if (gridData.background) {
-      board[extPrefix + 'background'] = {
+      (board as any)[extPrefix + 'background'] = {
         style: gridData.background.$.style,
         backcolour: gridData.background.backcolour,
         backcolour2: gridData.background.backcolour2,
@@ -50,25 +51,25 @@ const Sgrid = {
       };
     }
 
-    const cells = Array.isArray(gridData.cells.cell) ? gridData.cells.cell : [gridData.cells.cell];
+    const cellsArr = Array.isArray(gridData.cells.cell) ? gridData.cells.cell : [gridData.cells.cell];
     let imageIdCounter = 0;
 
-    cells.forEach((cell, idx) => {
+    cellsArr.forEach((cell: any, idx: number) => {
       const col = parseInt(cell.$.x) - 1;
       const row = parseInt(cell.$.y) - 1;
 
-      const button = {
+      const button: OBFButton = {
         id: idx.toString(),
         label: cell.caption,
       };
 
       ['stylepreset', 'scanblock', 'magnifyx', 'magnifyy', 'tooltip', 'directactivate'].forEach(
         (attr) => {
-          if (cell[attr]) button[extPrefix + attr] = cell[attr];
+          if (cell[attr]) (button as any)[extPrefix + attr] = cell[attr];
         }
       );
 
-      const preset = button[extPrefix + 'stylepreset'];
+      const preset = (button as any)[extPrefix + 'stylepreset'];
       if (preset === 'Blank cell (no style)') {
         button.background_color = 'rgb(255, 255, 255)';
         button.border_color = 'rgb(150, 150, 150)';
@@ -87,7 +88,7 @@ const Sgrid = {
         const commands = Array.isArray(cell.commands.command)
           ? cell.commands.command
           : [cell.commands.command];
-        commands.forEach((cmd) => {
+        commands.forEach((cmd: any) => {
           const type = cmd.id;
           if (type === 'type') {
             button.vocalization = Array.isArray(cmd.parameter)
@@ -108,13 +109,13 @@ const Sgrid = {
         const symbolSet = match && match[1] ? match[1].slice(1, -1) : null;
         const filename = match && match[2] ? match[2] : cell.picture;
 
-        const image = {
+        const image: OBFImage = {
           id: imageIdCounter.toString(),
         };
         if (symbolSet) {
-          image.symbol = { set: symbolSet, filename };
+          (image as any).symbol = { set: symbolSet, filename };
         } else {
-          image[extPrefix + 'filename'] = filename;
+          (image as any)[extPrefix + 'filename'] = filename;
         }
         board.images.push(image);
         button.image_id = image.id;
@@ -123,7 +124,7 @@ const Sgrid = {
 
       board.buttons.push(button);
       if (row >= 0 && row < rows && col >= 0 && col < columns) {
-        board.grid.order[row][col] = button.id;
+        board.grid!.order[row][col] = button.id;
       }
     });
 
@@ -131,4 +132,4 @@ const Sgrid = {
   },
 };
 
-module.exports = Sgrid;
+export default Sgrid;
